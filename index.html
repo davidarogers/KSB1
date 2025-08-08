@@ -1,0 +1,362 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Revision Flashcards – KSB v1</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); min-height: 100vh; margin:0; color:#1a202c; }
+    .container { max-width: 960px; margin: 0 auto; padding: 16px; }
+    .card { background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.12); overflow: hidden; }
+    .card-header { padding: 16px; color:#fff; background: linear-gradient(135deg,#667eea,#764ba2); }
+    .card-header h1 { margin:0; font-size: 20px; }
+    .card-body { padding: 16px; }
+    .row { display:flex; gap: 12px; flex-wrap: wrap; }
+    .btn { appearance: none; border:0; border-radius: 12px; padding: 12px 16px; cursor: pointer; font-weight:600; }
+    .btn-primary { background: linear-gradient(135deg,#667eea,#764ba2); color:#fff; }
+    .btn-ghost { background:#edf2f7; color:#2d3748; }
+    .btn-success { background: linear-gradient(135deg,#48bb78,#38a169); color:#fff; }
+    .btn-warn { background: linear-gradient(135deg,#ed8936,#dd6b20); color:#fff; }
+    .muted { color:#718096; font-size: 14px; }
+    .input, textarea { width: 100%; padding: 12px 14px; border:2px solid #e2e8f0; border-radius: 12px; font-family: inherit; font-size: 16px; }
+    .input:focus, textarea:focus { outline: 0; border-color:#667eea; }
+    .hidden { display:none !important; }
+    .pill { display:inline-block; padding: 6px 10px; background: linear-gradient(135deg,#667eea,#764ba2); color:#fff; border-radius: 999px; font-size: 12px; }
+    .kpi { display:flex; gap:12px; flex-wrap: wrap; margin: 12px 0; }
+    .kpi .tile { background:#f7fafc; border:1px solid #e2e8f0; padding:10px 12px; border-radius: 12px; }
+    .answer-box { background:#f8fafc; border:1px solid #e2e8f0; padding:12px; border-radius:12px; white-space: pre-wrap;}
+    .footer { text-align:center; color:#e2e8f0; margin-top:16px; font-size:12px; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- LOGIN -->
+    <div class="card" id="loginCard">
+      <div class="card-header">
+        <h1>Revision: Portfolio Part 1</h1>
+        <div class="muted">Password required to access the flashcards.</div>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <input class="input" id="pwd" type="password" placeholder="Enter password" autocomplete="current-password" style="flex:1; min-width:220px;">
+          <button class="btn btn-primary" id="loginBtn">Access</button>
+        </div>
+        <div id="loginError" class="muted" style="color:#e53e3e; margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <!-- DATA LOAD -->
+    <div class="card hidden" id="dataCard">
+      <div class="card-header">
+        <h1>Step 2 – Load Questions</h1>
+        <div class="muted">We'll try to auto-load <b>KSB1_questions_answersGrok.csv</b>. If that fails, upload the CSV.</div>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <button class="btn btn-primary" id="tryAutoLoad">Try auto-load</button>
+          <label class="btn btn-ghost" for="fileInput">Or choose CSV…</label>
+          <input id="fileInput" type="file" accept=".csv" class="hidden">
+        </div>
+        <div id="loadMsg" class="muted" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <!-- CATEGORY -->
+    <div class="card hidden" id="catCard">
+      <div class="card-header">
+        <h1>Select a Category</h1>
+        <div class="muted">Counts are based on the loaded dataset.</div>
+      </div>
+      <div class="card-body">
+        <div class="kpi" id="catKpis"></div>
+        <div class="row">
+          <button class="btn btn-primary" data-cat="Knowledge">Knowledge</button>
+          <button class="btn btn-primary" data-cat="Skills">Skills</button>
+          <button class="btn btn-primary" data-cat="Behaviour">Behaviour</button>
+          <button class="btn btn-ghost" id="exportBtn" title="Download your attempts CSV">Export attempts</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUIZ -->
+    <div class="card hidden" id="quizCard">
+      <div class="card-header">
+        <div class="row" style="align-items:center; justify-content: space-between;">
+          <div>
+            <div class="pill" id="refPill">—</div>
+            <div class="muted" id="progressTxt">Question — of —</div>
+          </div>
+          <div><b id="catTitle">—</b></div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="answer-box" id="qText">Loading…</div>
+        <div style="margin-top:12px;">
+          <label for="userAns"><b>Your answer</b> (free text):</label>
+          <textarea id="userAns" rows="5" placeholder="Type your answer here…"></textarea>
+        </div>
+        <div class="row" style="margin-top:12px;">
+          <button class="btn btn-primary" id="checkBtn">Check answer</button>
+          <button class="btn btn-success hidden" id="nextBtn">Next</button>
+          <button class="btn btn-warn hidden" id="reviewBtn">Mark: Review</button>
+          <button class="btn btn-success hidden" id="gotBtn">Mark: Got it</button>
+          <button class="btn btn-ghost" id="backBtn">Back to categories</button>
+          <button class="btn btn-ghost" id="restartBtn">Restart category</button>
+        </div>
+        <div id="feedback" class="muted" style="margin-top:12px;"></div>
+        <div id="modelAns" class="answer-box hidden" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="card hidden" id="summaryCard">
+      <div class="card-header"><h1>Category complete!</h1></div>
+      <div class="card-body">
+        <div id="summaryStats" class="kpi"></div>
+        <div class="row">
+          <button class="btn btn-primary" id="summaryBack">Back to categories</button>
+          <button class="btn btn-ghost" id="summaryExport">Export attempts</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">Built for local use. For auto-load, place this HTML and the CSV in the same folder and open via a local web server.</div>
+  </div>
+
+<script>
+/** ---- Configuration ---- **/
+const ADMIN_PASSWORD = "portfolio2025"; // change as needed
+
+/** ---- State ---- **/
+let dataset = []; // {Reference, Category, Question, Answer}
+let attempts = []; // {timestamp, category, reference, userAnswer, score, mark}
+let currentCat = null;
+let questions = [];
+let qi = 0;
+
+/** ---- Utils ---- **/
+// Basic CSV auto-load helper
+async function tryFetchCsv() {
+  const candidates = ['KSB1_questions_answersGrok.csv','KSB1_answersGrok.csv'];
+  let lastErr = null;
+  for (const name of candidates) {
+    try {
+      const res = await fetch(encodeURI(name), {cache:'no-store'});
+      if (!res.ok) throw new Error('Fetch failed: ' + name);
+      const text = await res.text();
+      const parsed = Papa.parse(text, {header:true, skipEmptyLines:true});
+      if (!parsed.data || !parsed.data.length) throw new Error('No rows: ' + name);
+      return parsed.data;
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error('Unable to load CSV');
+  const res = await fetch('KSB1_questions_answersGrok.csv', {cache:'no-store'});
+  if (!res.ok) throw new Error('Fetch failed');
+  const text = await res.text();
+  const parsed = Papa.parse(text, {header:true, skipEmptyLines:true});
+  if (!parsed.data || !parsed.data.length) throw new Error('No rows');
+  return parsed.data;
+}
+
+// Text cleaning + tokenization
+function tokens(s) {
+  return (s || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+// Very simple similarity: Jaccard on tokens
+function jaccard(a, b) {
+  const A = new Set(tokens(a));
+  const B = new Set(tokens(b));
+  if (A.size === 0 && B.size === 0) return 1;
+  const inter = [...A].filter(x => B.has(x)).length;
+  const uni = new Set([...A, ...B]).size;
+  return inter / (uni || 1);
+}
+
+// Sort by reference number like K1.10, S2.3, etc.
+function refKey(ref) {
+  return parseFloat(String(ref || '').replace(/[A-Za-z]/g, '')) || 0;
+}
+
+// Download helper
+function download(filename, text) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type: 'text/plain'}));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/** ---- UI helpers ---- **/
+function show(id) { document.getElementById(id).classList.remove('hidden'); }
+function hide(id) { document.getElementById(id).classList.add('hidden'); }
+
+function renderCatCounts() {
+  const kpi = document.getElementById('catKpis');
+  const cats = ['Knowledge','Skills','Behaviour'];
+  const counts = cats.map(c => [c, dataset.filter(r => (r.Category||'').trim()===c).length]);
+  kpi.innerHTML = counts.map(([c,n]) => \`<div class="tile"><b>\${c}</b><div class="muted">\${n} questions</div></div>\`).join('');
+}
+
+/** ---- Screens ---- **/
+function toDataLoad() {
+  hide('loginCard'); show('dataCard');
+}
+function toCategories() {
+  hide('quizCard'); hide('summaryCard'); show('catCard');
+  renderCatCounts();
+}
+function toQuiz() {
+  hide('catCard'); show('quizCard');
+}
+function toSummary(statsHtml) {
+  hide('quizCard'); show('summaryCard');
+  document.getElementById('summaryStats').innerHTML = statsHtml;
+}
+
+/** ---- App init ---- **/
+// Login
+document.getElementById('loginBtn').addEventListener('click', () => {
+  const ok = document.getElementById('pwd').value === ADMIN_PASSWORD;
+  document.getElementById('loginError').textContent = ok ? '' : 'Incorrect password. Please try again.';
+  if (ok) toDataLoad();
+});
+document.getElementById('pwd').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('loginBtn').click(); });
+
+// Data load
+document.getElementById('tryAutoLoad').addEventListener('click', async () => {
+  const msg = document.getElementById('loadMsg');
+  msg.textContent = 'Loading KSB1_questions_answersGrok.csv…';
+  try {
+    dataset = await tryFetchCsv();
+    msg.textContent = \`Loaded \${dataset.length} rows.\`;
+    hide('dataCard'); toCategories();
+  } catch (err) {
+    msg.textContent = 'Auto-load failed. Please use the file picker.';
+  }
+});
+document.getElementById('fileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  document.getElementById('loadMsg').textContent = 'Parsing CSV…';
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: (res) => {
+      dataset = res.data;
+      document.getElementById('loadMsg').textContent = \`Loaded \${dataset.length} rows.\`;
+      hide('dataCard'); toCategories();
+    },
+    error: (e) => {
+      document.getElementById('loadMsg').textContent = 'Parse error: ' + e;
+    }
+  });
+});
+
+// Category selection & export
+document.getElementById('catCard').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-cat]');
+  if (!btn) return;
+  currentCat = btn.getAttribute('data-cat');
+  questions = dataset.filter(r => (r.Category||'').trim() === currentCat)
+                     .sort((a,b) => refKey(a.Reference) - refKey(b.Reference));
+  qi = 0;
+  startQuestion();
+});
+document.getElementById('exportBtn').addEventListener('click', () => {
+  if (!attempts.length) { alert('No attempts yet.'); return; }
+  const header = 'timestamp,category,reference,score,mark,userAnswer\n';
+  const rows = attempts.map(a => [a.timestamp, a.category, a.reference, a.score.toFixed(3), a.mark || '', JSON.stringify(a.userAnswer||'').replace(/^"|"$/g,'')].join(','));
+  download('attempts.csv', header + rows.join('\n'));
+});
+
+// Quiz controls
+document.getElementById('backBtn').addEventListener('click', toCategories);
+document.getElementById('restartBtn').addEventListener('click', () => { if (confirm('Restart this category? Progress in this run will be cleared.')) { qi=0; startQuestion(); }});
+document.getElementById('checkBtn').addEventListener('click', checkAnswer);
+document.getElementById('nextBtn').addEventListener('click', () => { qi++; startQuestion(); });
+document.getElementById('reviewBtn').addEventListener('click', () => setMark('review'));
+document.getElementById('gotBtn').addEventListener('click', () => setMark('got-it'));
+
+document.getElementById('summaryBack').addEventListener('click', toCategories);
+document.getElementById('summaryExport').addEventListener('click', () => document.getElementById('exportBtn').click());
+
+function startQuestion() {
+  if (!questions.length) { alert('No questions in this category.'); toCategories(); return; }
+  if (qi >= questions.length) {
+    const total = questions.length;
+    const inCat = attempts.filter(a => a.category === currentCat);
+    const avg = inCat.length ? (inCat.reduce((s,a)=>s+a.score,0)/inCat.length) : 0;
+    const reviews = inCat.filter(a => a.mark === 'review').length;
+    const got = inCat.filter(a => a.mark === 'got-it').length;
+    const stats = \`
+      <div class="tile"><b>Questions</b><div class="muted">\${total}</div></div>
+      <div class="tile"><b>Attempts</b><div class="muted">\${inCat.length}</div></div>
+      <div class="tile"><b>Avg similarity</b><div class="muted">\${avg.toFixed(2)}</div></div>
+      <div class="tile"><b>Marked Review</b><div class="muted">\${reviews}</div></div>
+      <div class="tile"><b>Marked Got it</b><div class="muted">\${got}</div></div>
+    \`;
+    toSummary(stats);
+    return;
+  }
+
+  const q = questions[qi];
+  toQuiz();
+  document.getElementById('catTitle').textContent = currentCat;
+  document.getElementById('refPill').textContent = q.Reference || '—';
+  document.getElementById('progressTxt').textContent = \`Question \${qi+1} of \${questions.length}\`;
+  document.getElementById('qText').textContent = q.Question || '—';
+  document.getElementById('userAns').value = '';
+
+  // reset feedback
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('modelAns').classList.add('hidden');
+  document.getElementById('nextBtn').classList.add('hidden');
+  document.getElementById('reviewBtn').classList.add('hidden');
+  document.getElementById('gotBtn').classList.add('hidden');
+}
+
+function checkAnswer() {
+  const q = questions[qi];
+  const user = document.getElementById('userAns').value.trim();
+  const score = jaccard(user, q.Answer || '');
+  document.getElementById('feedback').innerHTML =
+    \`Similarity score: <b>\${score.toFixed(2)}</b> (0–1). Read the model answer below and self-assess.\`;
+  const model = document.getElementById('modelAns');
+  model.textContent = q.Answer || '—';
+  model.classList.remove('hidden');
+
+  attempts.push({
+    timestamp: new Date().toISOString(),
+    category: currentCat,
+    reference: q.Reference || '',
+    userAnswer: user,
+    score,
+    mark: ''
+  });
+
+  document.getElementById('nextBtn').classList.remove('hidden');
+  document.getElementById('reviewBtn').classList.remove('hidden');
+  document.getElementById('gotBtn').classList.remove('hidden');
+}
+
+function setMark(mark) {
+  // set mark on the latest attempt for this question
+  for (let i = attempts.length - 1; i >= 0; i--) {
+    if (attempts[i].category === currentCat && attempts[i].reference === (questions[qi].Reference||'')) {
+      attempts[i].mark = mark;
+      break;
+    }
+  }
+}
+</script>
+</body>
+</html>
