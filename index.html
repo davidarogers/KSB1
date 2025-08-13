@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revision: Portfolio Part 1</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Password Protection Screen -->
+    <div id="password-screen" class="screen active">
+        <div class="container">
+            <h1>Revision: Portfolio Part 1</h1>
+            <div class="password-form">
+                <input type="password" id="password-input" placeholder="Enter password" aria-label="Password">
+                <button id="password-submit" class="btn btn-primary">Enter</button>
+                <div id="password-error" class="error-message" role="alert"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Landing Page -->
+    <div id="landing-screen" class="screen">
+        <div class="container">
+            <h1>Revision: Portfolio Part 1</h1>
+            <div class="category-buttons">
+                <button class="btn btn-category" data-category="all">All Categories</button>
+                <button class="btn btn-category" data-category="knowledge">Knowledge</button>
+                <button class="btn btn-category" data-category="skills">Skills</button>
+                <button class="btn btn-category" data-category="behaviour">Behaviour</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flashcard Screen -->
+    <div id="flashcard-screen" class="screen">
+        <div class="container">
+            <div class="flashcard-header">
+                <div class="progress-info">
+                    <span id="question-counter">Question 1 of 54</span>
+                    <span id="category-name">Knowledge</span>
+                </div>
+                <div class="navigation-buttons">
+                    <button id="back-to-category" class="btn btn-secondary">Back to Category</button>
+                    <button id="restart-category" class="btn btn-secondary">Restart</button>
+                </div>
+            </div>
+
+            <div class="flashcard-container">
+                <div id="flashcard" class="flashcard">
+                    <!-- Question Side -->
+                    <div id="question-side" class="flashcard-side active">
+                        <div class="reference-number" id="question-ref">Ref: KSB001</div>
+                        <div class="question-content" id="question-text">
+                            Sample question text goes here...
+                        </div>
+                        <button id="show-answer" class="btn btn-primary">Show Answer</button>
+                    </div>
+
+                    <!-- Answer Side -->
+                    <div id="answer-side" class="flashcard-side">
+                        <div class="reference-number" id="answer-ref">Ref: KSB001</div>
+                        <div class="question-recap" id="question-recap">
+                            Sample question text...
+                        </div>
+                        <div class="answer-content" id="answer-text">
+                            Sample answer text goes here...
+                        </div>
+                        <div class="answer-buttons">
+                            <button id="got-it-right" class="btn btn-success">Got it Right</button>
+                            <button id="need-review" class="btn btn-warning">Need to Review</button>
+                        </div>
+                        <button id="next-question" class="btn btn-primary">Next Question</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
